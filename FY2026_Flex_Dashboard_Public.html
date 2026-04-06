@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FY2026 Flex Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f4f0; --surface: #ffffff; --surface2: #f0efe9;
+    --border: rgba(0,0,0,0.08); --border-strong: rgba(0,0,0,0.15);
+    --text: #1a1917; --text-2: #6b6a65; --text-3: #9b9a95;
+    --blue: #2563eb; --green: #16a34a; --red: #dc2626;
+    --radius: 10px; --radius-lg: 16px;
+  }
+  body { font-family: 'Avenir Next', 'Avenir', 'Century Gothic', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+  .header p { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .fy-badge { background: var(--text); color: #fff; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 20px; font-family: 'Avenir Next', 'Avenir', monospace; }
+  .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; overflow-x: auto; }
+  .nav-btn { background: none; border: none; border-bottom: 2px solid transparent; padding: 12px 16px; font-size: 13px; font-family: 'Avenir Next', 'Avenir', 'Century Gothic', sans-serif; color: var(--text-2); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+  .main { padding: 28px 32px; max-width: 1200px; margin: 0 auto; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .kpi-grid { display: grid; gap: 12px; margin-bottom: 28px; }
+  .kpi-row { display: grid; gap: 12px; margin-bottom: 12px; }
+  .kpi-row-3 { grid-template-columns: repeat(3, 1fr); }
+  .kpi-row-3:last-child { margin-bottom: 28px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .kpi-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .kpi-value { font-size: 24px; font-weight: 600; letter-spacing: -0.03em; font-family: 'Avenir Next', 'Avenir', monospace; }
+  .kpi-delta { font-size: 11px; margin-top: 4px; font-family: 'Avenir Next', 'Avenir', monospace; }
+  .up { color: var(--green); } .dn { color: var(--red); }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 20px; }
+  .chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+  .chart-title { font-size: 13px; font-weight: 500; }
+  .chart-sub { font-size: 12px; color: var(--text-3); margin-top: 3px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .li { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-2); }
+  .ls { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .ld { width: 20px; height: 2px; flex-shrink: 0; }
+  select { font-family: 'Avenir Next', 'Avenir', 'Century Gothic', sans-serif; font-size: 12px; border: 1px solid var(--border-strong); border-radius: 6px; padding: 5px 10px; background: var(--surface2); color: var(--text); cursor: pointer; outline: none; }
+  .ann-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); cursor: pointer; }
+  .ann-toggle input { cursor: pointer; accent-color: var(--text); }
+  .events-wrap { margin-top: 16px; }
+  .events-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+  .ev { display: flex; gap: 8px; align-items: flex-start; background: var(--surface2); border-radius: 8px; padding: 8px 10px; }
+  .ev-badge { width: 18px; height: 18px; min-width: 18px; border-radius: 50%; background: var(--text); color: #fff; font-size: 9px; font-weight: 600; display: flex; align-items: center; justify-content: center; font-family: 'Avenir Next', 'Avenir', monospace; margin-top: 1px; }
+  .ev-text { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+  .ev-month { font-weight: 500; color: var(--text); }
+  .goal-sub { font-size: 12px; color: var(--text-3); margin-bottom: 20px; }
+  .goal-badge { font-size: 11px; font-family: 'Avenir Next', 'Avenir', monospace; background: var(--surface2); border-radius: 6px; padding: 3px 8px; color: var(--text-2); white-space: nowrap; }
+  .draft-bullet:last-child { border-bottom: none; padding-bottom: 0; }
+  .draft-bullet::before { content: "•"; color: var(--text-3); flex-shrink: 0; }
+  textarea { width: 100%; font-family: 'Avenir Next', 'Avenir', monospace; font-size: 12px; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 12px; background: var(--surface2); color: var(--text); resize: vertical; min-height: 140px; outline: none; line-height: 1.6; }
+  textarea:focus { border-color: rgba(0,0,0,0.3); }
+  .copy-btn:hover { background: var(--surface2); }
+  .copy-btn.copied { background: #dcfce7; border-color: #16a34a; color: #15803d; }
+  .status-ok { color: var(--green); }
+  .status-err { color: var(--red); }
+  .process-btn:hover { opacity: 0.85; }
+  .process-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Flex Portfolio Dashboard</h1>
+    <p id="header-sub">FY2026 · Aug 2025 – Mar 2026 · 8 months of data</p>
+  </div>
+  <span class="fy-badge">FY2026</span>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showTab('overview',this)">Portfolio overview</button>
+  <button class="nav-btn" onclick="showTab('sites',this)">Site view</button>
+  <button class="nav-btn" onclick="showTab('goal',this)">Flex goals tracker</button>
+</nav>
+
+<div class="main">
+
+<div id="tab-overview" class="tab-panel active">
+  <div class="kpi-row kpi-row-3">
+    <div class="kpi"><div class="kpi-label">Total seats</div><div class="kpi-value">12,027</div><div class="kpi-delta dn">−130 since Aug</div></div>
+    <div class="kpi"><div class="kpi-label">Flex setup seats</div><div class="kpi-value">9,065</div><div class="kpi-delta up">+139 since Aug</div></div>
+    <div class="kpi"><div class="kpi-label">% flex setup seats</div><div class="kpi-value">75%</div><div class="kpi-delta up">+2pts since Aug</div></div>
+  </div>
+  <div class="kpi-row kpi-row-3">
+    <div class="kpi"><div class="kpi-label">Seated headcount</div><div class="kpi-value">14,421</div><div class="kpi-delta up">+563 since Aug</div></div>
+    <div class="kpi"><div class="kpi-label">Flex people</div><div class="kpi-value">12,027</div><div class="kpi-delta up">+1,534 since Aug</div></div>
+    <div class="kpi"><div class="kpi-label">% flex people</div><div class="kpi-value">83%</div><div class="kpi-delta up">+7pts since Aug</div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Flex conversion tracker</div>
+        <div class="legend">
+          <span class="li"><span class="ls" style="background:rgba(22,163,74,0.7);"></span>Flex desks</span>
+          <span class="li"><span class="ls" style="background:rgba(155,154,149,0.35);border:1px solid #9b9a95;"></span>Non-flex desks</span>
+          <span class="li"><span class="ls" style="background:#2563eb;"></span>Flex desk % (right axis)</span>
+          <span class="li"><span class="ls" style="background:#d97706;"></span>Flex people % (right axis)</span>
+        </div>
+      </div>
+    </div>
+    <div style="position:relative;height:300px;"><canvas id="cOv"></canvas></div>
+  </div>
+  <div style="margin-top:16px;">
+    <div class="events-label">Key events</div>
+    <div class="events-grid" id="events-list"></div>
+  </div>
+</div>
+
+<div id="tab-goal" class="tab-panel">
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">% flex seating — Sig 7 vs portfolio</div>
+        <div class="chart-sub">Flex setup seats ÷ standard capacity &nbsp;·&nbsp; Sig 7 current: 81% &nbsp;·&nbsp; 4pts to close in 4 months</div>
+      </div>
+      <span class="goal-badge">Target: 85% by Jul 2026</span>
+    </div>
+    <div style="position:relative;height:320px;"><canvas id="cGoal"></canvas></div>
+    <div class="legend">
+      <span class="li"><span class="ls" style="background:#2563eb;"></span>Sig 7 actual</span>
+      <span class="li"><span class="ls" style="background:#9b9a95;"></span>Portfolio actual</span>
+      <span class="li"><span class="ld" style="background:#2563eb;opacity:0.5;"></span>Required path (Sig 7)</span>
+      <span class="li"><span class="ld" style="background:#dc2626;"></span>Goal (85%)</span>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">% flex people — portfolio</div>
+        <div class="chart-sub">Flex seating people ÷ seated headcount &nbsp;·&nbsp; Current: 83% &nbsp;·&nbsp; 2pts to close in 4 months</div>
+      </div>
+      <span class="goal-badge">Target: 85% by Jul 2026</span>
+    </div>
+    <div style="position:relative;height:260px;"><canvas id="cGoalPfp"></canvas></div>
+    <div class="legend">
+      <span class="li"><span class="ls" style="background:#16a34a;"></span>Portfolio actual</span>
+      <span class="li"><span class="ld" style="background:#16a34a;opacity:0.5;"></span>Required path</span>
+      <span class="li"><span class="ld" style="background:#dc2626;"></span>Goal (85%)</span>
+    </div>
+  </div>
+</div>
+
+<div id="tab-sites" class="tab-panel">
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">Site view</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <select id="stV" onchange="uSt()">
+          <option value="capacity">Capacity view</option>
+          <option value="people">People view</option>
+        </select>
+        <select id="stS" onchange="uSt()">
+          <option value="portfolio">Portfolio total</option>
+          <option value="ATL" selected>Atlanta (ATL)</option>
+          <option value="BAN">Bangalore (BAN)</option>
+          <option value="DUB">Dublin (DUB)</option>
+          <option value="LON">London (LON)</option>
+          <option value="LAX">Los Angeles (LAX)</option>
+          <option value="MTV">Mountain View (MTV)</option>
+          <option value="NYC">New York (NYC)</option>
+          <option value="PLN">Plano (PLN)</option>
+          <option value="PUN">Pune (PUN)</option>
+          <option value="RNO">Reno (RNO)</option>
+          <option value="SDG">San Diego (SDG)</option>
+          <option value="SFO">San Francisco (SFO)</option>
+          <option value="SDY">Sydney (SDY)</option>
+          <option value="TLV">Tel Aviv (TLV)</option>
+          <option value="TOR">Toronto (TOR)</option>
+          <option value="TCS">Tucson (TCS)</option>
+          <option value="WDC">Washington DC (WDC)</option>
+        </select>
+      </div>
+    </div>
+    <div style="position:relative;height:340px;"><canvas id="cSt"></canvas></div>
+    <div class="legend" id="st-leg" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+
+
+</div>
+
+<script>
+const MO = [['Aug','2025'],['Sep','2025'],['Oct','2025'],['Nov','2025'],['Dec','2025'],['Jan','2026'],['Feb','2026'],['Mar','2026']];
+const MO_ALL = [['Aug','2025'],['Sep','2025'],['Oct','2025'],['Nov','2025'],['Dec','2025'],['Jan','2026'],['Feb','2026'],['Mar','2026'],['Apr','2026'],['May','2026'],['Jun','2026'],['Jul','2026']];
+
+const D = {
+  ptf:{hc:[13858,14034,14066,14043,14185,14250,14304,14421],fp:[10493,10326,11544,11410,11623,11761,11849,12027],gf:[9739,9682,9815,9762,9713,9771,9773,9788],as:[2418,2371,2244,2311,2304,2256,2250,2239],fs:[8926,8823,8975,9009,9058,9072,9066,9065],std:[12157,12053,12059,12073,12017,12027,12023,12027],pfp:[76,74,82,81,82,83,83,83],pfs:[73,73,74,75,75,75,75,75]},
+  ATL:{hc:[1059,1070,1073,1075,1078,1069,1066,1084],fp:[986,973,1022,1011,1034,1027,1013,1044],pfp:[93,91,95,94,96,96,95,96],fs:[886,886,886,886,889,889,889,889],pfs:[97,97,97,96,97,97,97,97],as:[46,27,23,46,45,45,44,44],gf:[869,888,892,875,874,870,871,871],std:[915,915,915,921,919,915,915,915]},
+  BAN:{hc:[2489,2513,2546,2544,2542,2562,2599,2617],fp:[2418,2386,2469,2449,2480,2511,2538,2558],pfp:[97,95,97,96,98,98,98,98],fs:[1865,1865,1865,1867,1867,1867,1867,1867],pfs:[98,98,98,98,99,99,99,99],as:[34,32,27,35,34,34,35,37],gf:[1868,1870,1877,1871,1845,1845,1844,1842],std:[1902,1902,1904,1906,1879,1879,1879,1879]},
+  LON:{hc:[232,221,209,207,204,198,193,190],fp:[224,218,206,204,200,194,189,186],pfp:[97,99,99,99,98,98,98,98],fs:[253,253,253,253,254,254,254,254],pfs:[99,99,99,99,99,99,99,99],as:[8,3,2,2,2,2,2,2],gf:[248,253,254,254,254,254,254,254],std:[256,256,256,256,256,256,256,256]},
+  LAX:{hc:[246,245,240,239,239,238,234,232],fp:[169,168,166,165,165,164,160,159],pfp:[69,69,69,69,69,69,68,69],fs:[192,192,192,192,192,192,192,192],pfs:[65,65,65,65,65,65,65,65],as:[69,69,69,69,69,69,69,68],gf:[227,227,227,227,227,227,227,228],std:[296,296,296,296,296,296,296,296]},
+  MTV:{hc:[4240,4309,4321,4309,4393,4419,4440,4493],fp:[3034,2972,3503,3457,3559,3640,3665,3744],pfp:[72,69,81,80,81,82,83,83],fs:[2345,2357,2357,2363,2390,2391,2391,2391],pfs:[75,76,76,76,77,77,77,76],as:[740,736,740,738,712,705,700,690],gf:[2366,2378,2374,2378,2406,2418,2422,2436],std:[3106,3114,3114,3116,3118,3123,3122,3126]},
+  NYC:{hc:[547,561,556,558,569,587,601,616],fp:[522,515,548,545,558,577,580,603],pfp:[95,92,99,98,98,98,97,98],fs:[344,344,344,348,348,348,348,348],pfs:[100,100,100,100,100,100,100,100],as:[5,3,2,4,4,5,7,6],gf:[339,341,342,344,344,343,341,342],std:[344,344,344,348,348,348,348,348]},
+  PLN:{hc:[676,699,686,675,671,664,633,645],fp:[79,77,323,314,320,303,289,306],pfp:[12,11,47,47,48,46,46,47],fs:[140,140,288,288,288,288,287,287],pfs:[18,18,38,38,38,38,38,38],as:[454,497,340,346,344,347,335,334],gf:[311,268,425,419,421,418,430,431],std:[765,765,765,765,765,765,765,765]},
+  PUN:{hc:[45,44,40,39,56,51,108,104],fp:[45,41,40,39,3,1,107,103],pfp:[100,93,100,100,5,2,99,99],fs:[0,0,0,0,0,0,0,0],pfs:[0,0,0,0,0,0,0,0],as:[0,0,0,0,53,0,0,0],gf:[53,53,53,53,0,63,63,63],std:[53,53,53,53,53,63,63,63]},
+  RNO:{hc:[241,241,238,238,236,234,232,228],fp:[230,230,226,226,224,222,219,213],pfp:[95,95,95,95,95,95,94,93],fs:[235,235,235,235,235,235,235,235],pfs:[100,100,100,100,100,100,100,100],as:[11,10,10,12,11,11,11,12],gf:[224,225,225,224,224,224,224,223],std:[235,235,235,236,235,235,235,235]},
+  SDG:{hc:[2159,2187,2195,2194,2235,2247,2224,2253],fp:[1300,1281,1507,1491,1537,1566,1538,1561],pfp:[60,59,69,68,69,70,69,69],fs:[1288,1287,1292,1314,1331,1342,1340,1339],pfs:[54,54,54,55,56,57,57,57],as:[702,655,674,701,677,678,687,688],gf:[1668,1717,1707,1679,1679,1677,1667,1666],std:[2370,2372,2381,2380,2356,2355,2354,2354]},
+  SFO:{hc:[257,256,242,237,224,222,220,229],fp:[237,235,223,217,206,204,202,210],pfp:[92,92,92,92,92,92,92,92],fs:[127,127,126,126,126,126,126,126],pfs:[97,97,96,96,96,96,97,97],as:[19,19,19,20,19,19,21,20],gf:[112,112,112,111,112,112,109,110],std:[131,131,131,131,131,131,130,130]},
+  SDY:{hc:[124,125,125,122,126,130,127,125],fp:[115,111,120,117,117,124,121,122],pfp:[93,89,96,96,93,95,95,98],fs:[208,94,94,94,94,94,94,94],pfs:[100,100,100,100,100,100,100,100],as:[6,0,0,4,4,4,2,2],gf:[202,94,94,90,90,90,92,92],std:[208,94,94,94,94,94,94,94]},
+  TLV:{hc:[572,564,566,561,565,569,563,566],fp:[531,517,525,520,530,524,521,526],pfp:[93,92,93,93,94,92,93,93],fs:[513,513,513,513,513,513,513,513],pfs:[100,100,100,100,100,100,100,100],as:[33,31,32,33,29,37,36,36],gf:[480,482,481,480,484,476,477,477],std:[513,513,513,513,513,513,513,513]},
+  TOR:{hc:[672,697,726,743,742,757,760,732],fp:[588,587,648,637,667,683,685,667],pfp:[88,84,89,86,90,90,90,91],fs:[454,454,454,454,455,457,456,456],pfs:[99,99,99,99,99,100,100,100],as:[14,12,10,13,15,15,15,14],gf:[444,446,448,445,443,443,442,443],std:[458,458,458,458,458,458,457,457]},
+  TCS:{hc:[269,272,272,272,275,272,274,276],fp:[5,5,13,13,17,15,15,18],pfp:[2,2,5,5,6,6,5,7],fs:[53,53,53,53,53,53,53,53],pfs:[9,9,9,9,9,9,9,9],as:[257,257,277,264,262,261,263,262],gf:[313,313,293,306,304,305,303,304],std:[570,570,570,570,566,566,566,566]},
+  WDC:{hc:[25,25,26,25,25,26,25,26],fp:[9,9,5,5,5,5,6,6],pfp:[36,36,19,20,20,19,24,23],fs:[23,23,23,23,23,23,21,21],pfs:[82,82,100,100,100,100,91,91],as:[16,16,15,20,20,20,19,20],gf:[12,12,8,3,3,3,4,3],std:[28,28,23,23,23,23,23,23]},
+  DUB:{hc:[5,5,5,5,5,5,5,5],fp:[1,1,0,0,1,1,1,1],pfp:[20,20,0,0,20,20,20,20],fs:[0,0,0,0,0,0,0,0],pfs:[0,0,0,0,0,0,0,0],as:[4,4,4,4,4,4,4,4],gf:[3,3,3,3,3,3,3,3],std:[7,7,7,7,7,7,7,7]}
+};
+
+const SIG7 = ['ATL','BAN','MTV','NYC','SDG','TLV','TOR'];
+const SIG7C = ['#2563eb','#16a34a','#d97706','#7c3aed','#db2777','#0891b2','#9b9a95'];
+const SC = {ATL:'#2563eb',BAN:'#16a34a',LON:'#d97706',LAX:'#7c3aed',MTV:'#0891b2',NYC:'#db2777',PLN:'#9b9a95',RNO:'#15803d',SDG:'#b45309',SFO:'#6d28d9',SDY:'#dc2626',TLV:'#0e7490',TOR:'#c2410c',TCS:'#888780',WDC:'#444441',DUB:'#B4B2A9',PUN:'#5DCAA5'};
+
+const EVTS = [
+  {i:0,l:'A',month:'Aug 2025',text:'MTV Bldg 4 closed (−231 std cap); SDG & SDY +212 flex setup seats; BAN HC −567 (contract reduction)'},
+  {i:1,l:'B',month:'Sep 2025',text:'SDY Floor 7 offline (−114 std cap); LON seated headcount −11 FTEs (~5%)'},
+  {i:2,l:'C',month:'Oct 2025',text:'PLN Sales Org shifted to flex; portfolio-wide workstyle audit (+11.8% flex people)'},
+  {i:3,l:'D',month:'Nov 2025',text:'Flex setup seats +30, primarily SDG +22'},
+  {i:4,l:'E',month:'Dec 2025',text:'MTV building moves: 200+ HC redistributed, 140 HC → flex; +49 flex setup seats (MTV +27, SDG +17)'},
+  {i:5,l:'F',month:'Jan 2026',text:'PUN new site PUN-02 (std cap 53→63); SDG & TOR +14 flex setup seats; BAN std cap −27'},
+  {i:6,l:'G',month:'Feb 2026',text:'PUN-02 moves completed; MTV-22 & MTV-14 building/floor assignments updated'},
+];
+
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const annPlugin={id:'ann',afterDraw(chart){
+  if(!chart._ann)return;
+  const ctx=chart.ctx,xs=chart.scales.x,ys=chart.scales.y;
+  EVTS.forEach(ev=>{
+    const x=xs.getPixelForValue(ev.i);
+    ctx.save();
+    ctx.beginPath();ctx.moveTo(x,ys.top+22);ctx.lineTo(x,ys.bottom);
+    ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(x,ys.top+11,10,0,Math.PI*2);ctx.fillStyle='#1a1917';ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='600 10px Avenir Next, Avenir, monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(ev.l,x,ys.top+11);ctx.restore();
+  });
+}};
+Chart.register(annPlugin, ChartDataLabels);
+
+const nonFlexDesks = D.ptf.std.map((v,i) => v - D.ptf.fs[i]);
+
+const ovChart=new Chart(document.getElementById('cOv'),{
+  type:'bar',
+  data:{labels:MO,datasets:[
+    {label:'Non-flex desks',data:nonFlexDesks,backgroundColor:'rgba(155,154,149,0.35)',stack:'desks',yAxisID:'y',order:2},
+    {label:'Flex desks',data:D.ptf.fs,backgroundColor:'rgba(22,163,74,0.7)',stack:'desks',yAxisID:'y',order:2},
+    {label:'Flex desk %',data:D.ptf.pfs,type:'line',borderColor:'#2563eb',backgroundColor:'transparent',tension:0.35,pointRadius:4,borderWidth:2.5,yAxisID:'y2',order:1},
+    {label:'Flex people %',data:D.ptf.pfp,type:'line',borderColor:'#d97706',borderDash:[4,3],backgroundColor:'transparent',tension:0.35,pointRadius:4,borderWidth:2,yAxisID:'y2',order:1}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.yAxisID==='y2'?' '+ctx.dataset.label+': '+ctx.parsed.y+'%':' '+ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()}}},
+    scales:{
+      x:{ticks:{autoSkip:false,font:{size:11}},stacked:true},
+      y:{stacked:true,min:0,max:14000,ticks:{callback:v=>v.toLocaleString(),font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}},
+      y2:{position:'right',min:60,max:95,ticks:{stepSize:5,callback:v=>v+'%',font:{size:11}},grid:{display:false}}
+    }},
+  _ann:false
+});
+
+const evEl=document.getElementById('events-list');
+EVTS.forEach(ev=>{
+  evEl.innerHTML+=`<div class="ev"><div class="ev-badge">${ev.l}</div><div class="ev-text"><span class="ev-month">${ev.month}:</span> ${ev.text}</div></div>`;
+});
+
+const goChart = new Chart(document.getElementById('cGoal'),{
+  type:'line',
+  data:{labels:MO_ALL,datasets:[
+    {label:'Sig 7 actual',data:[80,80,80,80,81,81,81,81,null,null,null,null],borderColor:'#2563eb',borderWidth:2.5,tension:0.3,pointRadius:5,fill:false,spanGaps:false},
+    {label:'Portfolio actual',data:[73,73,74,75,75,75,75,75,null,null,null,null],borderColor:'#9b9a95',borderWidth:2,tension:0.3,pointRadius:5,fill:false,spanGaps:false},
+    {label:'Required path',data:[null,null,null,null,null,null,null,81,82,83,84,85],borderColor:'#2563eb',borderDash:[5,4],borderWidth:2,pointRadius:ctx=>ctx.dataIndex===7?0:4,pointBackgroundColor:'#fff',pointBorderColor:'#2563eb',pointBorderWidth:2,tension:0.1,fill:false,spanGaps:false},
+    {label:'Goal',data:[85,85,85,85,85,85,85,85,85,85,85,85],borderColor:'#dc2626',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false},tooltip:{filter:i=>i.parsed.y!==null,callbacks:{label:ctx=>ctx.parsed.y===null?null:' '+ctx.dataset.label+': '+ctx.parsed.y+'%'}}},
+    scales:{x:{ticks:{autoSkip:false,font:{size:11}}},y:{min:65,max:90,ticks:{stepSize:5,callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}}
+});
+
+const goPfpChart = new Chart(document.getElementById('cGoalPfp'),{
+  type:'line',
+  data:{labels:MO_ALL,datasets:[
+    {label:'Portfolio actual',data:[76,74,82,81,82,83,83,83,null,null,null,null],borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,0.07)',tension:0.35,pointRadius:5,borderWidth:2.5,fill:true,spanGaps:false},
+    {label:'Required path',data:[null,null,null,null,null,null,null,83,84,85,null,null],borderColor:'#16a34a',borderDash:[5,4],borderWidth:2,pointRadius:ctx=>ctx.dataIndex===7?0:4,pointBackgroundColor:'#fff',pointBorderColor:'#16a34a',pointBorderWidth:2,tension:0.1,fill:false,spanGaps:false},
+    {label:'Goal',data:[85,85,85,85,85,85,85,85,85,85,85,85],borderColor:'#dc2626',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false},tooltip:{filter:i=>i.parsed.y!==null,callbacks:{label:ctx=>ctx.parsed.y===null?null:' '+ctx.dataset.label+': '+ctx.parsed.y+'%'}}},
+    scales:{x:{ticks:{autoSkip:false,font:{size:11}}},y:{min:60,max:90,ticks:{stepSize:5,callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,0.04)'}}}}
+});
+
+let stCh=null;
+function uSt(){
+  const view=document.getElementById('stV').value;
+  const sf=document.getElementById('stS').value;
+  if(stCh)stCh.destroy();
+
+  const src = sf==='portfolio' ? D.ptf : D[sf];
+  let datasets, legHTML, yMin;
+
+  if(view==='capacity'){
+    const nonFlex = src.std.map((v,i)=>v-src.fs[i]);
+    yMin = sf==='portfolio' ? 0 : 0;
+    datasets=[
+      {label:'Non-flex seats', data:nonFlex, backgroundColor:'rgba(155,154,149,0.35)', stack:'s', yAxisID:'y', order:2, type:'bar'},
+      {label:'Flex seats',     data:src.fs,  backgroundColor:'rgba(22,163,74,0.7)',    stack:'s', yAxisID:'y', order:2, type:'bar'},
+      {label:'Flex seat %',    data:src.pfs, borderColor:'#2563eb', backgroundColor:'transparent', tension:0.35, pointRadius:4, borderWidth:2.5, yAxisID:'y2', order:1, type:'line'}
+    ];
+    legHTML=`<span class="li"><span class="ls" style="background:rgba(22,163,74,0.7);"></span>Flex seats</span>
+             <span class="li"><span class="ls" style="background:rgba(155,154,149,0.35);border:1px solid #9b9a95;"></span>Non-flex seats</span>
+             <span class="li"><span class="ls" style="background:#2563eb;"></span>Flex seat % (right axis)</span>`;
+  } else {
+    const nonFlexPpl = src.hc.map((v,i)=>v-src.fp[i]);
+    datasets=[
+      {label:'Non-flex people', data:nonFlexPpl, backgroundColor:'rgba(155,154,149,0.35)', stack:'p', yAxisID:'y', order:2, type:'bar'},
+      {label:'Flex people',     data:src.fp,     backgroundColor:'rgba(37,99,235,0.65)',   stack:'p', yAxisID:'y', order:2, type:'bar'},
+      {label:'Flex people %',   data:src.pfp,    borderColor:'#d97706', backgroundColor:'transparent', tension:0.35, pointRadius:4, borderWidth:2.5, yAxisID:'y2', order:1, type:'line'}
+    ];
+    legHTML=`<span class="li"><span class="ls" style="background:rgba(37,99,235,0.65);"></span>Flex people</span>
+             <span class="li"><span class="ls" style="background:rgba(155,154,149,0.35);border:1px solid #9b9a95;"></span>Non-flex people</span>
+             <span class="li"><span class="ls" style="background:#d97706;"></span>Flex people % (right axis)</span>`;
+  }
+
+  stCh=new Chart(document.getElementById('cSt'),{
+    type:'bar',
+    data:{labels:MO, datasets},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          mode:'index',
+          intersect:false,
+          callbacks:{
+            title: ctx => Array.isArray(ctx[0].label) ? ctx[0].label.join(' ') : ctx[0].label,
+            label: ctx => {
+              if(ctx.dataset.yAxisID==='y2') return null;
+              return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y.toLocaleString();
+            },
+            footer: ctx => {
+              const barItems = ctx.filter(c => c.dataset.yAxisID !== 'y2');
+              const total = barItems.reduce((sum, c) => sum + (c.parsed.y || 0), 0);
+              return 'Total: ' + total.toLocaleString();
+            }
+          }
+        },
+        datalabels:{
+          display:ctx=>ctx.dataset.yAxisID==='y2',
+          color:'#1a1917',
+          anchor:'top',
+          align:'top',
+          offset:2,
+          font:{size:10, family:'Avenir Next, Avenir, monospace', weight:'500'},
+          formatter:v=>v+'%'
+        }
+      },
+      scales:{
+        x:{stacked:true, ticks:{autoSkip:false, font:{size:11}}},
+        y:{stacked:true, max: sf==='portfolio' ? 20000 : Math.max(...(view==='capacity'?src.std:src.hc))*1.5, ticks:{callback:v=>v.toLocaleString(), font:{size:11}}, grid:{color:'rgba(0,0,0,0.04)'}},
+        y2:{position:'right', min:0, max:105, ticks:{stepSize:20, callback:v=>v<=100?v+'%':'', font:{size:11}}, grid:{display:false}}
+      }}
+  });
+  document.getElementById('st-leg').innerHTML=legHTML;
+}
+uSt();
+
+
+
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/);
+  const headerIdx = lines.findIndex(l => l.includes('Site Code') && (l.includes('Space Style') || l.includes('Work Style')));
+  if (headerIdx === -1) return null;
+  const headers = lines[headerIdx].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+  const rows = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g,''));
+    const row = {};
+    headers.forEach((h, j) => row[h] = vals[j] || '');
+    rows.push(row);
+  }
+  return rows;
+}
+
+
+
+
+document.getElementById('up-month').addEventListener('input', checkReady);
+
+
+
+
+</script>
+</body>
+</html>
